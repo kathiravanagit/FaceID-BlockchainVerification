@@ -7,13 +7,20 @@ A pipeline that detects and encodes a face from a photo, finds a real matching s
 ```
 ┌─────────────────┐    ┌──────────────────────┐    ┌──────────────────┐
 │  Input Image     │───▶│  Face Detection       │───▶│  Reverse Image   │
-│  (any photo)     │    │  (deepface / ArcFace) │    │  Search (Yandex) │
-└─────────────────┘    └──────────────────────┘    └────────┬─────────┘
-                                                             │
+│  (any photo)     │    │  (deepface / ArcFace) │    │  Search (Yandex + │
+└─────────────────┘    └──────────────────────┘    │  SerpAPI Lens)    │
+                                                   └────────┬─────────┘
+                                                            │
                                                    ┌────────▼─────────┐
-                                                   │  Blockchain       │
-                                                   │  Record           │
-                                                   │  (Sepolia Testnet)│
+                                                   │  STEP 3 Blockchain│
+                                                   │  Upload (Sepolia) │
+                                                   └────────┬─────────┘
+                                                            │
+                                                   ┌────────▼─────────┐
+                                                   │  STEP 4 Re-Verify │
+                                                   │  Retrieve tx,     │
+                                                   │  recompute hash,  │
+                                                   │  compare → VERIFIED│
                                                    └──────────────────┘
 ```
 
@@ -32,11 +39,17 @@ A pipeline that detects and encodes a face from a photo, finds a real matching s
   - 100 free searches/month at https://serpapi.com
 - Deduplicates results and identifies platforms (Facebook, Twitter/X, Instagram, etc.)
 
-### Step 3: Blockchain Verification
+### Step 3: Blockchain Upload
 - Records the match on **Ethereum Sepolia testnet**
 - Embeds a `FACEVERIFY:` prefix + SHA-256 hash of the verification data in a transaction
 - Transaction includes: face encoding hash, social media URL, platform, timestamp
-- All records verifiable on [Etherscan (Sepolia)](https://sepolia.etherscan.io)
+- All records viewable on [Etherscan (Sepolia)](https://sepolia.etherscan.io)
+
+### Step 4: On-Chain Re-Verification
+- Retrieves the transaction back from Sepolia via `verify_on_chain(tx_hash)`
+- Recomputes the SHA-256 fingerprint from the local verification payload
+- Compares local hash == on-chain hash and prints `VERIFIED`
+- Result stored in `pipeline_result.json` under `steps.reverification`
 
 ## How to Run
 
@@ -46,7 +59,6 @@ A pipeline that detects and encodes a face from a photo, finds a real matching s
 
 ### 1. Install Dependencies
 ```bash
-cd face_verify
 pip install -r requirements.txt
 playwright install chromium
 ```
@@ -94,7 +106,7 @@ python blockchain.py verify <tx_hash>
 | **Chain ID** | 11155111 |
 | **Record Method** | Raw transaction with embedded data |
 | **Data Format** | `FACEVERIFY:` prefix + SHA-256 of verification payload |
-| **Verification** | Via Etherscan URL in output |
+| **Verification** | Programmatic re-verification: retrieve tx, recompute SHA-256, compare (STEP 4) + Etherscan URL |
 
 Each verification produces a transaction like:
 ```
@@ -125,6 +137,11 @@ Results are saved to `pipeline_result.json`:
       "tx_hash": "0x...",
       "block_number": 1234567,
       "etherscan_url": "https://sepolia.etherscan.io/tx/0x..."
+    },
+    "reverification": {
+      "verified": true,
+      "local_hash": "0x...",
+      "onchain_hash": "0x..."
     }
   }
 }

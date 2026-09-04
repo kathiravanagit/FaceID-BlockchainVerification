@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from detector import detect_and_encode
 from reverse_search import reverse_image_search
-from blockchain import record_verification, _get_web3
+from blockchain import record_verification, verify_on_chain, _get_web3
 
 
 def banner(text: str):
@@ -136,14 +136,53 @@ def run_pipeline(image_path: str) -> dict:
                 "elapsed_seconds": elapsed,
             }
 
+    banner("STEP 4: On-Chain Re-Verification")
+    blockchain_step = result.get("steps", {}).get("blockchain", {})
+    if "tx_hash" in blockchain_step:
+        try:
+            t0 = time.time()
+            tx_hash = blockchain_step["tx_hash"]
+            print(f"  Retrieving tx from Sepolia: {tx_hash[:32]}...")
+            onchain = verify_on_chain(tx_hash, w3=w3)
+            local_hash = blockchain_step.get("on_chain_data_hash", "")
+            remote_hash = onchain.get("data_hash", "")
+            print(f"  Local fingerprint  : {local_hash}")
+            print(f"  On-chain fingerprint: {remote_hash}")
+            verified = bool(onchain.get("found") and local_hash and local_hash.lower() == remote_hash.lower())
+            elapsed = round(time.time() - t0, 2)
+            if verified:
+                print("  [OK] VERIFIED - local hash matches on-chain record")
+            else:
+                print("  [FAIL] MISMATCH - local hash does not match on-chain record")
+            result["steps"]["reverification"] = {
+                "verified": verified,
+                "local_hash": local_hash,
+                "onchain_hash": remote_hash,
+                "onchain_detail": onchain,
+                "elapsed_seconds": elapsed,
+            }
+        except Exception as e:
+            err_msg = str(e)
+            print(f"  [FAIL] Re-verification error: {err_msg}")
+            result["steps"]["reverification"] = {
+                "verified": False,
+                "error": err_msg,
+            }
+    else:
+        print("  [SKIP] No transaction to verify")
+        result["steps"]["reverification"] = {"verified": False, "skipped": True}
+
     banner("PIPELINE COMPLETE")
     result["success"] = True
+    blockchain_step = result.get("steps", {}).get("blockchain", {})
+    reverify_step = result.get("steps", {}).get("reverification", {})
     result["summary"] = {
         "face_hash": face["encoding_hash"],
         "best_match_url": best_match["url"],
         "platform": best_match["platform"],
         "total_matches": n_matches,
-        "blockchain_recorded": "tx_hash" in result.get("steps", {}).get("blockchain", {}),
+        "blockchain_recorded": "tx_hash" in blockchain_step,
+        "blockchain_verified": bool(reverify_step.get("verified", False)),
     }
     print(json.dumps(result["summary"], indent=2))
 
