@@ -11,3 +11,10 @@
 credentials.json
 secrets.json
 secrets/
+
+# Generated pipeline outputs - do not commit
+pipeline_result.json
+*_facecrop.jpg
+__pycache__/
+*.pyc
+*.pyo

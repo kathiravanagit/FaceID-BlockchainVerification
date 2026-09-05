@@ -95,6 +95,16 @@ def run_pipeline(image_path: str) -> dict:
         print(f"  #{i}  [{m['platform']}] {m['url'][:80]}")
 
     best_match = pick_best_match(search_result["matches"])
+    if not best_match:
+        msg = "No reachable social-media post found (post-level URL required)"
+        print(f"  [FAIL] {msg}")
+        result["error"] = msg
+        result["steps"]["reverse_search"] = {
+            "engines": search_result["engines"],
+            "matches": search_result["matches"],
+            "elapsed_seconds": elapsed,
+        }
+        return result
     print(f"  [OK] Real social-media post found")
     print(f"         Platform : {best_match['platform']}")
     print(f"         Post URL : {best_match['url']}")
@@ -172,16 +182,21 @@ def run_pipeline(image_path: str) -> dict:
             print(f"  {recomputed}")
             onchain = verify_on_chain(tx_hash, w3=w3)
             remote_hash = onchain.get("data_hash", "")
+            onchain_status = onchain.get("status", "")
             print("")
             print("  On-chain fingerprint:")
             print(f"  {remote_hash}")
+            print(f"  On-chain status: {onchain_status}")
             print("")
-            verified = bool(onchain.get("found") and recomputed.lower() == remote_hash.lower())
+            mined = bool(onchain.get("found") and onchain_status == "success")
+            verified = bool(mined and recomputed.lower() == remote_hash.lower())
             elapsed = round(time.time() - t0, 2)
             if verified:
                 print("  [OK] HASH MATCH")
                 print("  [OK] DATA VERIFIED")
                 print("  [OK] TAMPER CHECK PASSED")
+            elif not mined:
+                print("  [FAIL] Transaction not yet mined - cannot declare VERIFIED")
             else:
                 print("  [FAIL] MISMATCH - local hash does not match on-chain record")
             result["steps"]["reverification"] = {

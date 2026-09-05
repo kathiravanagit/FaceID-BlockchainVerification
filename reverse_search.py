@@ -77,11 +77,12 @@ def pick_best_match(matches: list) -> dict | None:
     if not matches:
         return None
     post_urls = [m for m in matches if _is_post_url(m.get("url", ""))]
-    candidates = post_urls if post_urls else matches
-    for m in candidates:
+    if not post_urls:
+        return None
+    for m in post_urls:
         if _is_reachable(m.get("url", "")):
             return m
-    return candidates[0]
+    return None
 
 YANDEX_INTERNAL = {"yandex.com", "yandex.net", "ya.ru", "yastatic.net", "passport.yandex.com"}
 
