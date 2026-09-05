@@ -85,7 +85,7 @@ def write_genesis_record(w3=None) -> str:
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=300, poll_latency=5)
 
-    print(f"  [blockchain] Genesis tx: {tx_hash.hex()}")
+    print(f"  [blockchain] Genesis tx: 0x{tx_hash.hex()}")
     print(f"  [blockchain] Block: {receipt['blockNumber']}")
 
     return tx_hash.hex()
@@ -133,13 +133,13 @@ def record_verification(face_encoding_hash: str, match_url: str, platform: str, 
 
     signed_tx = w3.eth.account.sign_transaction(tx, account.key)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    print(f"  TX submitted: {tx_hash.hex()}")
+    print(f"  TX submitted: 0x{tx_hash.hex()}")
     print("  Waiting for confirmation...")
 
     try:
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=300, poll_latency=5)
     except Exception as e:
-        print(f"  Transaction still pending: {tx_hash.hex()} ({e})")
+        print(f"  Transaction still pending: 0x{tx_hash.hex()} ({e})")
         return {
             "tx_hash": tx_hash.hex(),
             "pending": True,
@@ -167,7 +167,7 @@ def record_verification(face_encoding_hash: str, match_url: str, platform: str, 
         "verifier_address": account.address,
     }
 
-    print(f"  [blockchain] TX: {tx_hash.hex()}")
+    print(f"  [blockchain] TX: 0x{tx_hash.hex()}")
     print(f"  [blockchain] Block: {receipt['blockNumber']}")
     print(f"  [blockchain] Gas: {receipt['gasUsed']}")
     print(f"  [blockchain] Etherscan: {etherscan_url}")

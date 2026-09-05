@@ -170,7 +170,7 @@ def run_pipeline(image_path: str) -> dict:
             t0 = time.time()
             tx_hash = blockchain_step["tx_hash"]
             print("  Transaction retrieved from Ethereum Sepolia")
-            print(f"  TX: {tx_hash}")
+            print(f"  TX: 0x{tx_hash.removeprefix('0x')}")
             print("")
             print("  Discovered post:")
             print(f"  Platform       : {best_match['platform']}")
