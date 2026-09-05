@@ -11,9 +11,9 @@ if sys.platform == "win32":
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from detector import detect_and_encode
-from reverse_search import reverse_image_search
-from blockchain import record_verification, verify_on_chain, _get_web3
+from detector import detect_and_encode, save_face_crop
+from reverse_search import reverse_image_search, pick_best_match
+from blockchain import record_verification, verify_on_chain, canonical_hash, _get_web3
 
 
 def banner(text: str):
@@ -40,29 +40,40 @@ def run_pipeline(image_path: str) -> dict:
 
     if not face["face_detected"]:
         msg = f"No face detected: {face.get('error', 'unknown')}"
-        print(f"  [WARN] {msg}")
-        print("         Continuing with reverse image search on full image...")
+        print(f"  [FAIL] {msg}")
+        print("  Pipeline stopped - face identification is required.")
         result["steps"]["face_detection"] = face
-        import hashlib as _hl
-        file_bytes = Path(image_path).read_bytes()
-        file_hash = _hl.sha256(file_bytes).hexdigest()
-        face["encoding_hash"] = file_hash
-    else:
-        print(f"  [OK]   Face detected  |  model={face['model']}  |  {elapsed}s")
-        print(f"         Encoding hash : {face['encoding_hash'][:32]}...")
-        print(f"         Bounding box  : {face['face_location']}")
-        result["steps"]["face_detection"] = {
-            "face_detected": True,
-            "encoding_hash": face["encoding_hash"],
-            "model": face["model"],
-            "face_location": face["face_location"],
-            "elapsed_seconds": elapsed,
-        }
+        result["error"] = msg
+        result["success"] = False
+        return result
+
+    print(f"  [OK]   Face detected  |  model={face['model']}  |  {elapsed}s")
+    print(f"         Encoding hash : {face['encoding_hash'][:32]}...")
+    print(f"         Bounding box  : {face['face_location']}")
+    result["steps"]["face_detection"] = {
+        "face_detected": True,
+        "encoding_hash": face["encoding_hash"],
+        "model": face["model"],
+        "face_location": face["face_location"],
+        "elapsed_seconds": elapsed,
+    }
+
+    try:
+        face_crop_path = save_face_crop(image_path, face["face_location"])
+        print(f"  Face crop saved : {face_crop_path}")
+    except Exception as e:
+        print(f"  [WARN] Face crop failed ({e}), using full image")
+        face_crop_path = str(Path(image_path).resolve())
+    result["steps"]["face_detection"]["face_crop"] = face_crop_path
 
     banner("STEP 2: Reverse Image Search")
+    print("  Search input: detected face crop")
     t0 = time.time()
     serpapi_key = os.getenv("SERPAPI_KEY")
-    search_result = reverse_image_search(image_path, serpapi_key=serpapi_key)
+    search_result = reverse_image_search(face_crop_path, serpapi_key=serpapi_key)
+    if not search_result["matches"]:
+        print("  No matches on face crop, retrying with full image...")
+        search_result = reverse_image_search(image_path, serpapi_key=serpapi_key)
     elapsed = round(time.time() - t0, 2)
 
     n_matches = search_result["total_unique"]
@@ -83,7 +94,10 @@ def run_pipeline(image_path: str) -> dict:
     for i, m in enumerate(search_result["matches"][:5], 1):
         print(f"  #{i}  [{m['platform']}] {m['url'][:80]}")
 
-    best_match = search_result["matches"][0]
+    best_match = pick_best_match(search_result["matches"])
+    print(f"  [OK] Real social-media post found")
+    print(f"         Platform : {best_match['platform']}")
+    print(f"         Post URL : {best_match['url']}")
     result["steps"]["reverse_search"] = {
         "engines": search_result["engines"],
         "total_unique": n_matches,
@@ -92,7 +106,7 @@ def run_pipeline(image_path: str) -> dict:
         "elapsed_seconds": elapsed,
     }
 
-    banner("STEP 3: Blockchain Verification (Ethereum Sepolia)")
+    banner("STEP 3: Blockchain Upload (Ethereum Sepolia)")
 
     rpc_url = os.getenv("SEPOLIA_RPC_URL")
     private_key = os.getenv("PRIVATE_KEY")
@@ -118,10 +132,13 @@ def run_pipeline(image_path: str) -> dict:
             latest_block = w3.eth.block_number
             print(f"  Connected to chain {chain_id}  |  latest block: {latest_block}")
 
+            print("  Recording discovered post fingerprint...")
             chain_result = record_verification(
                 face_encoding_hash=face["encoding_hash"],
                 match_url=best_match["url"],
                 platform=best_match["platform"],
+                title=best_match.get("title", ""),
+                source=best_match.get("source", ""),
                 w3=w3,
             )
             elapsed = round(time.time() - t0, 2)
@@ -136,27 +153,40 @@ def run_pipeline(image_path: str) -> dict:
                 "elapsed_seconds": elapsed,
             }
 
-    banner("STEP 4: On-Chain Re-Verification")
+    banner("STEP 4: ON-CHAIN RE-VERIFICATION")
     blockchain_step = result.get("steps", {}).get("blockchain", {})
     if "tx_hash" in blockchain_step:
         try:
             t0 = time.time()
             tx_hash = blockchain_step["tx_hash"]
-            print(f"  Retrieving tx from Sepolia: {tx_hash[:32]}...")
+            print("  Transaction retrieved from Ethereum Sepolia")
+            print(f"  TX: {tx_hash}")
+            print("")
+            print("  Discovered post:")
+            print(f"  Platform       : {best_match['platform']}")
+            print(f"  URL            : {best_match['url']}")
+            print("")
+            stored_data = blockchain_step.get("verification_data", {})
+            recomputed = canonical_hash(stored_data)
+            print("  Recomputed fingerprint:")
+            print(f"  {recomputed}")
             onchain = verify_on_chain(tx_hash, w3=w3)
-            local_hash = blockchain_step.get("on_chain_data_hash", "")
             remote_hash = onchain.get("data_hash", "")
-            print(f"  Local fingerprint  : {local_hash}")
-            print(f"  On-chain fingerprint: {remote_hash}")
-            verified = bool(onchain.get("found") and local_hash and local_hash.lower() == remote_hash.lower())
+            print("")
+            print("  On-chain fingerprint:")
+            print(f"  {remote_hash}")
+            print("")
+            verified = bool(onchain.get("found") and recomputed.lower() == remote_hash.lower())
             elapsed = round(time.time() - t0, 2)
             if verified:
-                print("  [OK] VERIFIED - local hash matches on-chain record")
+                print("  [OK] HASH MATCH")
+                print("  [OK] DATA VERIFIED")
+                print("  [OK] TAMPER CHECK PASSED")
             else:
                 print("  [FAIL] MISMATCH - local hash does not match on-chain record")
             result["steps"]["reverification"] = {
                 "verified": verified,
-                "local_hash": local_hash,
+                "recomputed_hash": recomputed,
                 "onchain_hash": remote_hash,
                 "onchain_detail": onchain,
                 "elapsed_seconds": elapsed,
@@ -173,16 +203,23 @@ def run_pipeline(image_path: str) -> dict:
         result["steps"]["reverification"] = {"verified": False, "skipped": True}
 
     banner("PIPELINE COMPLETE")
-    result["success"] = True
     blockchain_step = result.get("steps", {}).get("blockchain", {})
     reverify_step = result.get("steps", {}).get("reverification", {})
+    face_ok = bool(result.get("steps", {}).get("face_detection", {}).get("face_detected", False))
+    match_ok = bool(best_match and best_match.get("url"))
+    recorded_ok = bool("tx_hash" in blockchain_step and blockchain_step.get("status") in ("success", "pending"))
+    mined_ok = bool("tx_hash" in blockchain_step and blockchain_step.get("status") == "success")
+    verified_ok = bool(reverify_step.get("verified", False))
+    result["success"] = bool(face_ok and match_ok and mined_ok and verified_ok)
     result["summary"] = {
+        "face_detected": face_ok,
+        "web_match_found": match_ok,
+        "blockchain_recorded": mined_ok,
+        "blockchain_verified": verified_ok,
         "face_hash": face["encoding_hash"],
         "best_match_url": best_match["url"],
         "platform": best_match["platform"],
         "total_matches": n_matches,
-        "blockchain_recorded": "tx_hash" in blockchain_step,
-        "blockchain_verified": bool(reverify_step.get("verified", False)),
     }
     print(json.dumps(result["summary"], indent=2))
 

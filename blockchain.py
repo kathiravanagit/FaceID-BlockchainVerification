@@ -8,43 +8,12 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
-CONTRACT_ABI = [
-    {
-        "inputs": [
-            {"name": "_faceHash", "type": "bytes32"},
-            {"name": "_matchUrl", "type": "string"},
-            {"name": "_platform", "type": "string"},
-        ],
-        "name": "recordVerification",
-        "outputs": [{"name": "", "type": "uint256"}],
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "inputs": [{"name": "_index", "type": "uint256"}],
-        "name": "getVerification",
-        "outputs": [
-            {"name": "faceHash", "type": "bytes32"},
-            {"name": "matchUrl", "type": "string"},
-            {"name": "platform", "type": "string"},
-            {"name": "timestamp", "type": "uint256"},
-            {"name": "verifier", "type": "address"},
-        ],
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "inputs": [],
-        "name": "verificationCount",
-        "outputs": [{"name": "", "type": "uint256"}],
-        "stateMutability": "view",
-        "type": "function",
-    },
-]
-
-CONTRACT_BYTECODE = None
-
 SEPOLIA_CHAIN_ID = 11155111
+
+
+def canonical_hash(verification_data: dict) -> str:
+    canonical = json.dumps(verification_data, sort_keys=True, separators=(",", ":"))
+    return "0x" + hashlib.sha256(canonical.encode()).hexdigest()
 
 
 def _get_web3():
@@ -75,7 +44,19 @@ def _get_account(w3):
     return Account.from_key(private_key)
 
 
-def deploy_contract(w3=None) -> str:
+def _build_fee_fields(w3):
+    try:
+        latest = w3.eth.get_block("latest")
+        base_fee = latest.get("baseFeePerGas")
+        if base_fee:
+            priority = w3.to_wei(1.5, "gwei")
+            return {"maxFeePerGas": int(base_fee * 2 + priority), "maxPriorityFeePerGas": int(priority)}
+    except Exception:
+        pass
+    return {"gasPrice": w3.eth.gas_price}
+
+
+def write_genesis_record(w3=None) -> str:
     if w3 is None:
         w3 = _get_web3()
 
@@ -88,22 +69,21 @@ def deploy_contract(w3=None) -> str:
     ).digest()
 
     nonce = w3.eth.get_transaction_count(account.address)
-    gas_price = w3.eth.gas_price
 
     tx = {
         "from": account.address,
         "to": account.address,
         "value": 0,
         "nonce": nonce,
-        "gas": 21000,
-        "gasPrice": gas_price,
+        "gas": 22000,
         "chainId": SEPOLIA_CHAIN_ID,
         "data": "0x" + data_hash.hex(),
     }
+    tx.update(_build_fee_fields(w3))
 
     signed_tx = w3.eth.account.sign_transaction(tx, account.key)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=300, poll_latency=5)
 
     print(f"  [blockchain] Genesis tx: {tx_hash.hex()}")
     print(f"  [blockchain] Block: {receipt['blockNumber']}")
@@ -111,44 +91,66 @@ def deploy_contract(w3=None) -> str:
     return tx_hash.hex()
 
 
-def record_verification(face_encoding_hash: str, match_url: str, platform: str, w3=None) -> dict:
+def deploy_contract(w3=None) -> str:
+    return write_genesis_record(w3)
+
+
+def record_verification(face_encoding_hash: str, match_url: str, platform: str, title: str = "", source: str = "", w3=None) -> dict:
 
     if w3 is None:
         w3 = _get_web3()
 
     account = _get_account(w3)
 
-    verification_data = json.dumps({
+    verification_data = {
         "face_hash": face_encoding_hash,
-        "match_url": match_url,
+        "post_url": match_url,
         "platform": platform,
+        "title": title or "",
+        "source": source or "",
         "timestamp": int(time.time()),
-    }, sort_keys=True)
+    }
 
-    data_bytes = hashlib.sha256(verification_data.encode()).digest()
-    data_hex = "0x" + data_bytes.hex()
+    data_hex = canonical_hash(verification_data)
+    data_bytes = bytes.fromhex(data_hex[2:])
 
     prefix = b"FACEVERIFY:"
     payload = prefix + data_bytes
     payload_hex = "0x" + payload.hex()
 
     nonce = w3.eth.get_transaction_count(account.address)
-    gas_price = w3.eth.gas_price
 
     tx = {
         "from": account.address,
         "to": account.address,
         "value": 0,
         "nonce": nonce,
-        "gas": 25000,
-        "gasPrice": gas_price,
+        "gas": 26000,
         "chainId": SEPOLIA_CHAIN_ID,
         "data": payload_hex,
     }
+    tx.update(_build_fee_fields(w3))
 
     signed_tx = w3.eth.account.sign_transaction(tx, account.key)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+    print(f"  TX submitted: {tx_hash.hex()}")
+    print("  Waiting for confirmation...")
+
+    try:
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=300, poll_latency=5)
+    except Exception as e:
+        print(f"  Transaction still pending: {tx_hash.hex()} ({e})")
+        return {
+            "tx_hash": tx_hash.hex(),
+            "pending": True,
+            "status": "pending",
+            "etherscan_url": f"https://sepolia.etherscan.io/tx/{tx_hash.hex()}",
+            "verification_data": verification_data,
+            "on_chain_data_hash": data_hex,
+            "network": "ethereum-sepolia",
+            "chain_id": SEPOLIA_CHAIN_ID,
+            "verifier_address": account.address,
+        }
 
     etherscan_url = f"https://sepolia.etherscan.io/tx/{tx_hash.hex()}"
 
@@ -158,7 +160,7 @@ def record_verification(face_encoding_hash: str, match_url: str, platform: str, 
         "gas_used": receipt["gasUsed"],
         "status": "success" if receipt.get("status") == 1 else "failed",
         "etherscan_url": etherscan_url,
-        "verification_data": json.loads(verification_data),
+        "verification_data": verification_data,
         "on_chain_data_hash": data_hex,
         "network": "ethereum-sepolia",
         "chain_id": SEPOLIA_CHAIN_ID,
@@ -178,7 +180,10 @@ def verify_on_chain(tx_hash: str, w3=None) -> dict:
         w3 = _get_web3()
 
     tx = w3.eth.get_transaction(tx_hash)
-    receipt = w3.eth.get_transaction_receipt(tx_hash)
+    try:
+        receipt = w3.eth.get_transaction_receipt(tx_hash)
+    except Exception:
+        receipt = None
 
     data = tx["input"]
     if isinstance(data, bytes):
@@ -191,11 +196,10 @@ def verify_on_chain(tx_hash: str, w3=None) -> dict:
             return {
                 "found": True,
                 "data_hash": "0x" + payload.hex(),
-                "block_number": receipt["blockNumber"],
-                "timestamp": receipt.get("blockNumber"),  # block number as proxy
+                "block_number": receipt["blockNumber"] if receipt else None,
                 "from": tx["from"],
                 "to": tx["to"],
-                "status": "success" if receipt.get("status") == 1 else "failed",
+                "status": "success" if receipt and receipt.get("status") == 1 else ("pending" if receipt is None else "failed"),
                 "network": "ethereum-sepolia",
                 "etherscan_url": f"https://sepolia.etherscan.io/tx/{tx_hash}",
             }

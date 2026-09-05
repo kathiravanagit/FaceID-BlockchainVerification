@@ -11,7 +11,7 @@
         "w": 61,
         "h": 74
       },
-      "elapsed_seconds": 55.2
+      "elapsed_seconds": 46.21
     },
     "reverse_search": {
       "engines": [
@@ -27,15 +27,15 @@
           "source": "serpapi"
         },
         {
-          "url": "https://www.instagram.com/p/CmaBiP7rAMI/",
-          "platform": "Instagram",
-          "title": "leomessi's World Cup post is now the most liked in Instagram ...",
+          "url": "https://www.facebook.com/groups/531590415885296/posts/976588754718791/",
+          "platform": "Facebook",
+          "title": "Lionel Messi's World Cup win Instagram post remains most liked",
           "source": "serpapi"
         },
         {
-          "url": "https://www.facebook.com/groups/919705405998220/posts/1442922953676460/",
-          "platform": "Facebook",
-          "title": "Lionel Messi's World Cup post is Instagram's most liked",
+          "url": "https://www.instagram.com/p/CmaBiP7rAMI/",
+          "platform": "Instagram",
+          "title": "leomessi's World Cup post is now the most liked in Instagram ...",
           "source": "serpapi"
         },
         {
@@ -51,9 +51,33 @@
           "source": "serpapi"
         },
         {
-          "url": "https://ie.pinterest.com/jude_12367/messi/",
-          "platform": "Pinterest",
-          "title": "56 Messi ideas | lionel messi wallpapers, lionel messi ...",
+          "url": "https://www.cnn.com/2026/08/31/sport/lionel-messi-argentina-national-team",
+          "platform": "Web",
+          "title": "Lionel Messi announces he is retiring from Argentina's ...",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.foxsports.com/stories/soccer/4-takeaways-argentina-world-cup-roster-selection-messi",
+          "platform": "Web",
+          "title": "4 Takeaways From Argentina's World Cup Roster Selection ...",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.thedailystar.net/tech-startup/news/messis-world-cup-celebration-becomes-the-highest-liked-instagram-post-3200896",
+          "platform": "Web",
+          "title": "Messi's World Cup celebration becomes the highest liked ...",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.engadget.com/lionel-messi-instagram-record-world-cup-220050247.html",
+          "platform": "Web",
+          "title": "Lionel Messi's World Cup celebration is now the most-liked ...",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.japantimes.co.jp/sports/2024/03/28/soccer/messi-not-retire-age-mls-barcelona-miami/",
+          "platform": "Web",
+          "title": "Age won't determine when I retire, says Lionel Messi - The ...",
           "source": "serpapi"
         },
         {
@@ -63,9 +87,21 @@
           "source": "serpapi"
         },
         {
-          "url": "https://www.arabnews.com/node/2219166/jserrors/aggregate",
+          "url": "https://ie.pinterest.com/jude_12367/messi/",
+          "platform": "Pinterest",
+          "title": "56 Messi ideas | lionel messi wallpapers, lionel messi ...",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.sportsnet.ca/soccer/article/messi-clinches-first-world-cup-title-as-argentina-defeats-france-on-penalties/",
           "platform": "Web",
-          "title": "Lionel Messi's World Cup win Instagram post sets new world ...",
+          "title": "Messi clinches first World Cup title as Argentina defeats ...",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.geo.tv/latest/459886-messis-world-cup-post-breaks-instagram",
+          "platform": "Web",
+          "title": "Messi's World Cup post breaks Instagram",
           "source": "serpapi"
         },
         {
@@ -75,69 +111,33 @@
           "source": "serpapi"
         },
         {
+          "url": "https://www.toffeeweb.com/season/22-23/news/42940.html",
+          "platform": "Web",
+          "title": "World Cup Final",
+          "source": "serpapi"
+        },
+        {
+          "url": "https://www.instagram.com/p/DQVLsAnE-AP/",
+          "platform": "Instagram",
+          "title": "\u2728\ud83c\udde6\ud83c\uddf7 Lionel Messi: \u201cWinning the World Cup was the ...",
+          "source": "serpapi"
+        },
+        {
           "url": "https://www.foxsports.com/stories/soccer/messis-instagram-post-after-world-cup-win-makes-social-media-history",
           "platform": "Web",
           "title": "Messi's Instagram post after World Cup win makes social ...",
           "source": "serpapi"
         },
         {
+          "url": "https://www.facebook.com/golesencontexto/posts/\ufe0f-lionel-messi-winning-the-world-cup-was-the-dream-of-my-life-the-one-major-trop/1138043235188096/",
+          "platform": "Facebook",
+          "title": "\ud83d\udde3\ufe0f Lionel Messi: \u201cWinning the World Cup was the dream of ...",
+          "source": "serpapi"
+        },
+        {
           "url": "https://talksport.com/football/world-cup/1281823/lionel-messi-instagram-post-cristiano-ronaldo-world-cup-trophy-record/",
           "platform": "Web",
           "title": "Lionel Messi's World Cup winning Instagram post is most ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://www.deezer.com/us/album/390735167",
-          "platform": "Web",
-          "title": "Lord Lex - MESSI | Deezer",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://www.instagram.com/p/DKp89wPTwpJ/",
-          "platform": "Instagram",
-          "title": "Messi lifting the FIFA World Cup \u2014 The greatest football ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://africa.espn.com/football/story/_/id/37634956/messi-world-cup-photos-battle-biggest-instagram-post",
-          "platform": "Web",
-          "title": "Lionel Messi vs. The Egg: World Cup trophy photo's battle to ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://www.13newsnow.com/article/news/nation-world/messi-world-cup-instagram-most-liked-ever/507-42a434ef-e198-4c61-bcf2-e0186562b47e",
-          "platform": "Web",
-          "title": "Lionel Messi's World Cup Instagram most liked post ever ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://sports.yahoo.com/articles/lionel-messi-sparks-controversy-goat-102929950.html",
-          "platform": "Web",
-          "title": "Lionel Messi sparks controversy with 'GOAT debate settled ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://foxsanantonio.com/newsletter-daily/messis-world-cup-win-post-is-the-most-liked-instagram-post-ever",
-          "platform": "Web",
-          "title": "Messi's World Cup win post is the most-liked Instagram post ever",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://www.youtube.com/watch?v=7jyQ1haP0TE",
-          "platform": "YouTube",
-          "title": "How Lionel Messi Ended 'The GOAT' Debate Once And For All ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://www.scmp.com/sport/football/article/3203775/lionel-messi-greatest-ever-or-just-greatest-right-now-world-cup-win-ends-debate-some-not-all-agree",
-          "platform": "Web",
-          "title": "Is Lionel Messi the GOAT, or just the greatest right now? World ...",
-          "source": "serpapi"
-        },
-        {
-          "url": "https://www.krem.com/article/news/nation-world/messi-world-cup-instagram-most-liked-ever/507-42a434ef-e198-4c61-bcf2-e0186562b47e",
-          "platform": "Web",
-          "title": "Lionel Messi's World Cup Instagram most liked post ever ...",
           "source": "serpapi"
         }
       ],
@@ -147,11 +147,11 @@
         "title": "Lionel Messi's World Cup win post becomes the most liked ...",
         "source": "serpapi"
       },
-      "elapsed_seconds": 38.72
+      "elapsed_seconds": 40.35
     },
     "blockchain": {
-      "error": "('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))",
-      "elapsed_seconds": 47.67
+      "error": "Transaction HexBytes('0x2222444cee7a3e3f48c36dc576c60fd62445905c2eb90927c7bfe3ebccf62887') is not in the chain after 120 seconds",
+      "elapsed_seconds": 130.78
     },
     "reverification": {
       "verified": false,

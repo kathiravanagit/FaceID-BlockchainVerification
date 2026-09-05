@@ -102,6 +102,29 @@ def detect_and_encode(image_path: str) -> dict:
         }
 
 
+def save_face_crop(image_path: str, face_location: dict, padding: float = 0.4) -> str:
+    from PIL import Image
+    src = Path(image_path).resolve()
+    img = Image.open(src).convert("RGB")
+    w_img, h_img = img.size
+    x = int(face_location.get("x", 0))
+    y = int(face_location.get("y", 0))
+    w = int(face_location.get("w", 0))
+    h = int(face_location.get("h", 0))
+    if w <= 0 or h <= 0:
+        return str(src)
+    pad_w = int(w * padding)
+    pad_h = int(h * padding)
+    x0 = max(0, x - pad_w)
+    y0 = max(0, y - pad_h)
+    x1 = min(w_img, x + w + pad_w)
+    y1 = min(h_img, y + h + pad_h)
+    crop = img.crop((x0, y0, x1, y1))
+    out = src.parent / (src.stem + "_facecrop.jpg")
+    crop.save(out, format="JPEG", quality=92)
+    return str(out)
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python detector.py <image_path>")

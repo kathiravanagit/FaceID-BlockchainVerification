@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 
 SOCIAL_DOMAINS = {
     "facebook.com", "fb.com", "fb.watch",
-    "twitter.com",
+    "twitter.com", "x.com",
     "instagram.com",
     "tiktok.com",
     "linkedin.com",
@@ -26,6 +26,62 @@ SOCIAL_DOMAINS = {
     "mastodon.social",
     "bsky.app",
 }
+
+
+def _is_post_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        path = parsed.path or ""
+        if "instagram.com" in host and ("/p/" in path or "/reel/" in path):
+            return True
+        if ("twitter.com" in host or host == "x.com" or host.endswith(".x.com")) and "/status/" in path:
+            return True
+        if "tiktok.com" in host and "/video/" in path:
+            return True
+        if "youtube.com" in host and ("/watch" in path or "/shorts/" in path):
+            return True
+        if "reddit.com" in host and "/comments/" in path:
+            return True
+        if "facebook.com" in host and any(k in path for k in ("/posts/", "/videos/", "/reel/", "/photo", "/watch")):
+            return True
+        if "pinterest." in host and "/pin/" in path:
+            return True
+        if "threads." in host and "/post/" in path:
+            return True
+        if "linkedin.com" in host and ("/posts/" in path or "/feed/" in path):
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def _is_reachable(url: str) -> bool:
+    try:
+        resp = requests.head(url, headers=HEADERS, timeout=10, allow_redirects=True)
+        if resp.status_code in (403, 429):
+            return True
+        return 200 <= resp.status_code < 400
+    except Exception:
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=10, stream=True)
+            resp.close()
+            if resp.status_code in (403, 429):
+                return True
+            return 200 <= resp.status_code < 400
+        except Exception:
+            return False
+
+
+def pick_best_match(matches: list) -> dict | None:
+    if not matches:
+        return None
+    post_urls = [m for m in matches if _is_post_url(m.get("url", ""))]
+    candidates = post_urls if post_urls else matches
+    for m in candidates:
+        if _is_reachable(m.get("url", "")):
+            return m
+    return candidates[0]
 
 YANDEX_INTERNAL = {"yandex.com", "yandex.net", "ya.ru", "yastatic.net", "passport.yandex.com"}
 

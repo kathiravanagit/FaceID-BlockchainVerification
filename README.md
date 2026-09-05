@@ -27,29 +27,30 @@ A pipeline that detects and encodes a face from a photo, finds a real matching s
 ## How It Works
 
 ### Step 1: Face Detection & Encoding
-- Uses **deepface** with the **ArcFace** model for face detection and 128-d embedding
+- Uses **deepface** with the **ArcFace** model for face detection and face embedding
+- Saves a padded face crop and uses the crop as the primary reverse-search input
 - Generates a SHA-256 hash of the face encoding for blockchain storage
 - Returns bounding box coordinates
 
-### Step 2: Reverse Image Search (Genuine)
-- **Primary**: Yandex Reverse Image Search (free, no API key)
-  - Uses Playwright headless browser for JavaScript-rendered results
-  - Uploads the image and parses search results for social media links
-- **Optional**: SerpAPI Google Lens (requires free API key)
-  - 100 free searches/month at https://serpapi.com
-- Deduplicates results and identifies platforms (Facebook, Twitter/X, Instagram, etc.)
+### Step 2: Genuine Reverse Image Search
+- Searches the **detected face crop first**, falls back to the full image
+- **Yandex** Reverse Image Search (free, no API key, Playwright headless browser)
+- **SerpAPI Google Lens** backup (requires free API key, 100 searches/month)
+- Filters to real post URLs (Instagram /p/ or /reel/, X /status/, TikTok /video/, YouTube /watch/, Reddit /comments/, etc.)
+- Picks the first reachable post-level match as the best match
 
 ### Step 3: Blockchain Upload
 - Records the match on **Ethereum Sepolia testnet**
-- Embeds a `FACEVERIFY:` prefix + SHA-256 hash of the verification data in a transaction
-- Transaction includes: face encoding hash, social media URL, platform, timestamp
+- Stores a SHA-256 fingerprint of the discovered post metadata, including the matched URL, platform, search source and available result metadata
+- Embeds a `FACEVERIFY:` prefix + fingerprint in a transaction
 - All records viewable on [Etherscan (Sepolia)](https://sepolia.etherscan.io)
 
 ### Step 4: On-Chain Re-Verification
 - Retrieves the transaction back from Sepolia via `verify_on_chain(tx_hash)`
-- Recomputes the SHA-256 fingerprint from the local verification payload
-- Compares local hash == on-chain hash and prints `VERIFIED`
+- Independently recomputes the SHA-256 fingerprint from the stored verification payload
+- Compares recomputed hash == on-chain hash and prints `HASH MATCH / DATA VERIFIED / TAMPER CHECK PASSED`
 - Result stored in `pipeline_result.json` under `steps.reverification`
+- Pipeline `success` is true only when face detected, post found, tx mined, and verification passed
 
 ## How to Run
 
