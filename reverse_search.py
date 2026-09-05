@@ -393,7 +393,8 @@ def search_serpapi(image_path: str, api_key: str, max_results: int = 10) -> dict
         return {"matches": matches[:max_results], "engine": "serpapi", "error": None}
 
     except Exception as e:
-        return {"matches": [], "engine": "serpapi", "error": f"SerpAPI search failed: {e}"}
+        safe_msg = str(e).replace(api_key, "[REDACTED]") if api_key else str(e)
+        return {"matches": [], "engine": "serpapi", "error": f"SerpAPI search failed: {safe_msg}"}
 
 
 def reverse_image_search(image_path: str, serpapi_key: str = None, max_results: int = 20) -> dict:

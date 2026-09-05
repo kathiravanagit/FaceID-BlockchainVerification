@@ -45,6 +45,13 @@ def run_pipeline(image_path: str) -> dict:
         result["steps"]["face_detection"] = face
         result["error"] = msg
         result["success"] = False
+        result["summary"] = {
+            "face_detected": False,
+            "web_match_found": False,
+            "blockchain_recorded": False,
+            "blockchain_verified": False,
+            "error": "No face detected",
+        }
         return result
 
     print(f"  [OK]   Face detected  |  model={face['model']}  |  {elapsed}s")
@@ -84,10 +91,18 @@ def run_pipeline(image_path: str) -> dict:
         msg = "No social-media matches found via reverse image search"
         print(f"  [FAIL] {msg}")
         result["error"] = msg
+        result["success"] = False
         result["steps"]["reverse_search"] = {
             "engines": search_result["engines"],
             "matches": [],
             "elapsed_seconds": elapsed,
+        }
+        result["summary"] = {
+            "face_detected": True,
+            "web_match_found": False,
+            "blockchain_recorded": False,
+            "blockchain_verified": False,
+            "error": msg,
         }
         return result
 
@@ -99,10 +114,18 @@ def run_pipeline(image_path: str) -> dict:
         msg = "No reachable social-media post found (post-level URL required)"
         print(f"  [FAIL] {msg}")
         result["error"] = msg
+        result["success"] = False
         result["steps"]["reverse_search"] = {
             "engines": search_result["engines"],
             "matches": search_result["matches"],
             "elapsed_seconds": elapsed,
+        }
+        result["summary"] = {
+            "face_detected": True,
+            "web_match_found": False,
+            "blockchain_recorded": False,
+            "blockchain_verified": False,
+            "error": msg,
         }
         return result
     print(f"  [OK] Real social-media post found")
