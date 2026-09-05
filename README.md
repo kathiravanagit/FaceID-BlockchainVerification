@@ -154,7 +154,7 @@ Results are saved to `pipeline_result.json`:
     },
     "reverification": {
       "verified": true,
-      "local_hash": "0x...",
+      "recomputed_hash": "0x...",
       "onchain_hash": "0x..."
     }
   }
